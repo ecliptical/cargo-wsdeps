@@ -1,0 +1,31 @@
+diff --git a/crate1/Cargo.toml b/crate1/Cargo.toml
+--- a/crate1/Cargo.toml
++++ b/crate1/Cargo.toml
+@@ -3,4 +3,4 @@
+ version = "0.1.0"
+ 
+ [dependencies]
+-anyhow = "1"
++anyhow = { workspace = true }
+
+diff --git a/crate3/Cargo.toml b/crate3/Cargo.toml
+--- a/crate3/Cargo.toml
++++ b/crate3/Cargo.toml
+@@ -3,4 +3,4 @@
+ version = "0.1.0"
+ 
+ [dependencies]
+-anyhow = { version = "1", default-features = false, optional = true }
++anyhow = { optional = true, workspace = true }
+
+diff --git a/Cargo.toml b/Cargo.toml
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -3,4 +3,4 @@
+ resolver = "2"
+ 
+ [workspace.dependencies]
+-serde = { version = "1", features = ["derive"] }
++anyhow = { version = "^1", default-features = false }
+
+

@@ -1,0 +1,6 @@
+[workspace]
+members = ["crate1", "crate2", "crate3"]
+resolver = "2"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }

@@ -1,0 +1,6 @@
+[package]
+name = "crate3"
+version = "0.1.0"
+
+[dependencies]
+anyhow = { version = "1", default-features = false, optional = true }

@@ -1,0 +1,21 @@
+[package]
+name = "cargo-wsdeps"
+description = "Cargo subcommand to manage dependencies in a workspace."
+version = "0.1.0"
+edition = "2024"
+authors = ["Peter Nehrer <pnehrer@eclipticalsoftware.com>"]
+license = "MIT"
+
+[dependencies]
+anyhow = "1"
+cargo_metadata = "0.19"
+cargo_toml = "0.22"
+clap = { version = "4", features = ["cargo"] }
+clap-cargo = { version = "0.15", features = ["cargo_metadata"] }
+patcher = "0.2"
+pathdiff = { version = "0.2", features = ["camino"] }
+toml_edit = "0.22"
+
+[dev-dependencies]
+assert_cmd = "2"
+predicates = "3"
