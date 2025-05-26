@@ -1,0 +1,148 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+          - target: x86_64-apple-darwin
+            os: macos-latest
+          - target: aarch64-apple-darwin
+            os: macos-latest
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install cross (Linux)
+        if: runner.os == 'Linux'
+        run: cargo install cross
+
+      - name: Build (Linux musl)
+        if: matrix.target == 'x86_64-unknown-linux-musl'
+        run: cross build --release --target ${{ matrix.target }}
+
+      - name: Build (Linux gnu)
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Build (macOS or Windows)
+        if: runner.os == 'macOS' || runner.os == 'Windows'
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Prepare artifacts (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          mkdir -p dist
+          cp target/${{ matrix.target }}/release/cargo-wsdeps dist/
+          cd dist
+          tar -czf cargo-wsdeps-${{ matrix.target }}.tar.gz cargo-wsdeps
+          echo -n "$(shasum -a 256 cargo-wsdeps-${{ matrix.target }}.tar.gz | cut -d ' ' -f 1)" > cargo-wsdeps-${{ matrix.target }}.tar.gz.sha256
+        shell: bash
+
+      - name: Prepare artifacts (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          mkdir -p dist
+          cp target/${{ matrix.target }}/release/cargo-wsdeps.exe dist/
+          cd dist
+          7z a cargo-wsdeps-${{ matrix.target }}.zip cargo-wsdeps.exe
+          certutil -hashfile cargo-wsdeps-${{ matrix.target }}.zip SHA256 | findstr /v "hash" | findstr /v "CertUtil" > cargo-wsdeps-${{ matrix.target }}.zip.sha256
+        shell: bash
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: cargo-wsdeps-${{ matrix.target }}
+          path: |
+            dist/cargo-wsdeps-${{ matrix.target }}.*
+
+  create-release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Generate cargo-binstall metadata
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          cat > dist/cargo-wsdeps-$VERSION-binstall.json << EOF
+          {
+            "package": {
+              "name": "cargo-wsdeps",
+              "version": "$VERSION",
+              "description": "Cargo subcommand to manage dependencies in a workspace.",
+              "license": "MIT",
+              "repository": "https://github.com/${{ github.repository }}"
+            },
+            "bins": [
+              {
+                "name": "cargo-wsdeps",
+                "targets": [
+                  {
+                    "triple": "x86_64-unknown-linux-gnu",
+                    "archive": "cargo-wsdeps-x86_64-unknown-linux-gnu.tar.gz",
+                    "sha256": "$(cat dist/cargo-wsdeps-x86_64-unknown-linux-gnu.tar.gz.sha256)"
+                  },
+                  {
+                    "triple": "x86_64-unknown-linux-musl",
+                    "archive": "cargo-wsdeps-x86_64-unknown-linux-musl.tar.gz",
+                    "sha256": "$(cat dist/cargo-wsdeps-x86_64-unknown-linux-musl.tar.gz.sha256)"
+                  },
+                  {
+                    "triple": "x86_64-apple-darwin",
+                    "archive": "cargo-wsdeps-x86_64-apple-darwin.tar.gz",
+                    "sha256": "$(cat dist/cargo-wsdeps-x86_64-apple-darwin.tar.gz.sha256)"
+                  },
+                  {
+                    "triple": "aarch64-apple-darwin",
+                    "archive": "cargo-wsdeps-aarch64-apple-darwin.tar.gz",
+                    "sha256": "$(cat dist/cargo-wsdeps-aarch64-apple-darwin.tar.gz.sha256)"
+                  },
+                  {
+                    "triple": "x86_64-pc-windows-msvc",
+                    "archive": "cargo-wsdeps-x86_64-pc-windows-msvc.zip",
+                    "sha256": "$(cat dist/cargo-wsdeps-x86_64-pc-windows-msvc.zip.sha256)"
+                  }
+                ]
+              }
+            ]
+          }
+          EOF
+        shell: bash
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            dist/cargo-wsdeps-*
+          draft: false
+          prerelease: false
+          generate_release_notes: true
