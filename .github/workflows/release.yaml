@@ -65,8 +65,10 @@ jobs:
           cp target/${{ matrix.target }}/release/cargo-wsdeps.exe dist/
           cd dist
           7z a cargo-wsdeps-${{ matrix.target }}.zip cargo-wsdeps.exe
-          certutil -hashfile cargo-wsdeps-${{ matrix.target }}.zip SHA256 | findstr /v "hash" | findstr /v "CertUtil" > cargo-wsdeps-${{ matrix.target }}.zip.sha256
-        shell: bash
+          certutil -hashfile cargo-wsdeps-${{ matrix.target }}.zip SHA256 | findstr /v "hash" > cargo-wsdeps-${{ matrix.target }}.zip.sha256.tmp
+          Set-Content -Path cargo-wsdeps-${{ matrix.target }}.zip.sha256 -Value (Get-Content cargo-wsdeps-${{ matrix.target }}.zip.sha256.tmp | Where-Object { $_ -notmatch "CertUtil" } | Select-Object -First 1)
+          Remove-Item cargo-wsdeps-${{ matrix.target }}.zip.sha256.tmp
+        shell: pwsh
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
