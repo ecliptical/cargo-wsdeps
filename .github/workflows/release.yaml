@@ -27,10 +27,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          targets: ${{ matrix.target }}
+          toolchain: stable
+          target: ${{ matrix.target }}
 
       - name: Install cross (Linux)
         if: runner.os == 'Linux'
@@ -38,7 +38,7 @@ jobs:
 
       - name: Build (Linux musl)
         if: matrix.target == 'x86_64-unknown-linux-musl'
-        run: cross build --release --target ${{ matrix.target }}
+        run: cross build --release --target ${{ matrix.target }} --features jemalloc
 
       - name: Build (Linux gnu)
         if: matrix.target == 'x86_64-unknown-linux-gnu'
@@ -141,6 +141,7 @@ jobs:
         shell: bash
 
       - name: Create GitHub Release
+        id: release
         uses: softprops/action-gh-release@v1
         with:
           files: |
@@ -148,3 +149,47 @@ jobs:
           draft: false
           prerelease: false
           generate_release_notes: true
+
+  test-binstall:
+    name: Test binstall ${{ matrix.target }}
+    needs: create-release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+          - target: x86_64-apple-darwin
+            os: macos-latest
+          - target: aarch64-apple-darwin
+            os: macos-latest
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+
+    steps:
+      - name: Install cargo-binstall
+        uses: cargo-bins/cargo-binstall@v1.12.5
+
+      - name: Install from GitHub release (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          cargo binstall --no-confirm --force \
+            --github-releases-url https://github.com/${{ github.repository }}/releases/latest \
+            cargo-wsdeps@${VERSION}
+        shell: bash
+
+      - name: Install from GitHub release (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          $VERSION = $env:GITHUB_REF -replace '^refs/tags/v', ''
+          cargo binstall --no-confirm --force `
+            --github-releases-url https://github.com/${{ github.repository }}/releases/latest `
+            cargo-wsdeps@$VERSION
+        shell: pwsh
+
+      - name: Verify installation
+        run: cargo wsdeps --version

@@ -2,6 +2,13 @@ use cargo_toml::Manifest;
 use cargo_wsdeps::{diff::generate_diff, partition_dependencies, show::print_changes};
 use clap::{Parser, Subcommand};
 
+#[cfg(all(feature = "jemalloc", target_env = "musl"))]
+use jemallocator::Jemalloc;
+
+#[cfg(all(feature = "jemalloc", target_env = "musl"))]
+#[global_allocator]
+static GLOBAL: Jemalloc = Jemalloc;
+
 /// Manage Cargo workspace dependencies.
 #[derive(Debug, Parser)]
 #[command(bin_name = "cargo")]
