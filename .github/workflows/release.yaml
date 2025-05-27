@@ -178,7 +178,7 @@ jobs:
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
           cargo binstall --no-confirm --force \
-            --github-releases-url https://github.com/${{ github.repository }}/releases/latest \
+            --git https://github.com/${{ github.repository }} \
             cargo-wsdeps@${VERSION}
         shell: bash
 
@@ -187,9 +187,25 @@ jobs:
         run: |
           $VERSION = $env:GITHUB_REF -replace '^refs/tags/v', ''
           cargo binstall --no-confirm --force `
-            --github-releases-url https://github.com/${{ github.repository }}/releases/latest `
+            --git https://github.com/${{ github.repository }} `
             cargo-wsdeps@$VERSION
         shell: pwsh
 
       - name: Verify installation
         run: cargo wsdeps --version
+
+  trigger-homebrew-update:
+    name: Trigger Homebrew Update
+    needs: test-binstall
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Homebrew update workflow
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_PAT }}
+        run: |
+          # Create the workflow dispatch event using GitHub CLI
+          VERSION=${GITHUB_REF#refs/tags/v}
+          gh workflow run update-formula.yml \
+            --repo ecliptical/homebrew-cargo-wsdeps \
+            --ref main \
+            --field version=$VERSION
