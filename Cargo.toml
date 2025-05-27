@@ -2,6 +2,7 @@
 name = "cargo-wsdeps"
 description = "Cargo subcommand to manage dependencies in a workspace."
 version = "0.1.0"
+repository = "https://github.com/ecliptical/cargo-wsdeps"
 edition = "2024"
 authors = ["Peter Nehrer <pnehrer@eclipticalsoftware.com>"]
 license = "MIT"
