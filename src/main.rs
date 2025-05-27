@@ -9,10 +9,17 @@ use jemallocator::Jemalloc;
 #[global_allocator]
 static GLOBAL: Jemalloc = Jemalloc;
 
-/// Manage Cargo workspace dependencies.
-#[derive(Debug, Parser)]
+#[derive(Parser)]
+#[command(name = "cargo")]
 #[command(bin_name = "cargo")]
-struct Cli {
+#[command(styles = clap_cargo::style::CLAP_STYLING)]
+enum CargoCli {
+    Wsdeps(WsDepsArgs),
+}
+
+#[derive(clap::Args)]
+#[command(version, about, long_about = None)]
+struct WsDepsArgs {
     #[command(flatten)]
     manifest: clap_cargo::Manifest,
     #[command(flatten)]
@@ -36,20 +43,20 @@ enum Commands {
 }
 
 fn main() -> anyhow::Result<()> {
-    let cli = Cli::parse();
-    let mut metadata = cli.manifest.metadata();
-    cli.features.forward_metadata(&mut metadata);
+    let CargoCli::Wsdeps(args) = CargoCli::parse();
+    let mut metadata = args.manifest.metadata();
+    args.features.forward_metadata(&mut metadata);
     let metadata = metadata.exec()?;
     let manifest = Manifest::from_path(metadata.workspace_root.join("Cargo.toml"))?;
     let Some(ref workspace) = manifest.workspace else {
         return Ok(());
     };
 
-    let (selected, _) = cli.workspace.partition_packages(&metadata);
+    let (selected, _) = args.workspace.partition_packages(&metadata);
 
     let (add, remove) = partition_dependencies(workspace, &selected)?;
 
-    match cli.cmd {
+    match args.cmd {
         Commands::Show => {
             print_changes(&add, &remove);
         }
