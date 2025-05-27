@@ -4,6 +4,20 @@ Manage dependencies that are shared among crates in a workspace.
 
 ## Installation
 
+Using homebrew:
+
+```shell
+brew install ecliptical/cargo-wsdeps/cargo-wsdeps
+```
+
+Using `cargo binstall`:
+
+```shell
+cargo binstall --locked cargo-wsdeps
+```
+
+Using `cargo install`:
+
 ```shell
 cargo install --locked cargo-wsdeps
 ```
