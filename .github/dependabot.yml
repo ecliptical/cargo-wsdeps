@@ -1,0 +1,21 @@
+version: 2
+updates:
+  # Enable version updates for Cargo
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    # Apply default reviewer and assignee to pull requests
+    assignees:
+      - "pnehrer"
+
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    # Apply default reviewer and assignee to pull requests
+    assignees:
+      - "pnehrer"
