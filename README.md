@@ -27,7 +27,7 @@ cargo install --locked cargo-wsdeps
 To generate a diff with suggested changes for a workspace in the current directory:
 
 ```shell
-cargo wsdeps --diff
+cargo wsdeps diff
 ```
 
 Copyright (c) 2025 Ecliptical Software Inc. All rights reserved.
