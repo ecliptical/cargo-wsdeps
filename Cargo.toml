@@ -9,7 +9,7 @@ license = "MIT"
 
 [dependencies]
 anyhow = "1"
-cargo_metadata = "0.19"
+cargo_metadata = "0.20"
 cargo_toml = "0.22"
 clap = { version = "4", features = ["cargo"] }
 clap-cargo = { version = "0.15", features = ["cargo_metadata"] }
