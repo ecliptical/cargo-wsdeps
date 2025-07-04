@@ -1,7 +1,7 @@
 [package]
 name = "cargo-wsdeps"
 description = "Cargo subcommand to manage dependencies in a workspace."
-version = "0.1.1"
+version = "0.1.2"
 repository = "https://github.com/ecliptical/cargo-wsdeps"
 edition = "2024"
 authors = ["Peter Nehrer <pnehrer@eclipticalsoftware.com>"]
@@ -9,7 +9,7 @@ license = "MIT"
 
 [dependencies]
 anyhow = "1"
-cargo_metadata = "0.19"
+cargo_metadata = "0.20"
 cargo_toml = "0.22"
 clap = { version = "4", features = ["cargo"] }
 clap-cargo = { version = "0.15", features = ["cargo_metadata"] }
@@ -31,3 +31,6 @@ lto = true
 codegen-units = 1
 strip = true
 panic = "abort"
+
+[patch.crates-io]
+clap-cargo = { git = "https://github.com/ecliptical/clap-cargo", branch = "pnehrer/cargo_metadata-0.20" }

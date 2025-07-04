@@ -32,7 +32,7 @@ pub fn partition_dependencies(
                 .entry(dep.name.clone())
                 .or_insert_with(|| Vec::with_capacity(1))
                 .push(MemberDependency {
-                    name: member.name.clone(),
+                    name: member.name.to_string(),
                     manifest_path: member.manifest_path.clone(),
                     dependency: dep.clone(),
                 });
