@@ -12,7 +12,7 @@ anyhow = "1"
 cargo_metadata = "0.21"
 cargo_toml = "0.22"
 clap = { version = "4", features = ["cargo"] }
-clap-cargo = { version = "0.16", features = ["cargo_metadata"] }
+clap-cargo = { version = "0.17", features = ["cargo_metadata"] }
 patcher = "0.2"
 pathdiff = { version = "0.2", features = ["camino"] }
 toml_edit = "0.23"
