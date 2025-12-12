@@ -1,5 +1,5 @@
 use anyhow::Result;
-use assert_cmd::Command;
+use assert_cmd::cargo::cargo_bin_cmd;
 use predicates::prelude::*;
 use std::fs;
 use std::path::Path;
@@ -7,7 +7,7 @@ use std::path::Path;
 #[test]
 fn diff_empty_workspace() -> Result<()> {
     let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("test-resources/empty-workspace");
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo_bin_cmd!();
     cmd.current_dir(&dir)
         .arg("wsdeps")
         .arg("diff")
@@ -21,7 +21,7 @@ fn diff_empty_workspace() -> Result<()> {
 fn diff_multi_member() -> Result<()> {
     let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("test-resources/multi-member");
     let expected = fs::read_to_string(dir.join("diff.patch"))?;
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo_bin_cmd!();
     cmd.current_dir(&dir)
         .arg("wsdeps")
         .arg("diff")
@@ -35,7 +35,7 @@ fn diff_multi_member() -> Result<()> {
 #[test]
 fn diff_single_member() -> Result<()> {
     let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("test-resources/single-member");
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo_bin_cmd!();
     cmd.current_dir(&dir)
         .arg("wsdeps")
         .arg("diff")
@@ -49,7 +49,7 @@ fn diff_single_member() -> Result<()> {
 #[test]
 fn diff_standalone() -> Result<()> {
     let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("test-resources/standalone");
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = cargo_bin_cmd!();
     cmd.current_dir(&dir)
         .arg("wsdeps")
         .arg("diff")
