@@ -30,4 +30,4 @@ To generate a diff with suggested changes for a workspace in the current directo
 cargo wsdeps diff
 ```
 
-Copyright (c) 2025 Ecliptical Software Inc. All rights reserved.
+Copyright (c) 2025 - 2026 Ecliptical Software Inc. All rights reserved.
