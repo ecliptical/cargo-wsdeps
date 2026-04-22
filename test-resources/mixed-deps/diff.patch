@@ -1,0 +1,22 @@
+diff --git a/crate1/Cargo.toml b/crate1/Cargo.toml
+--- a/crate1/Cargo.toml
++++ b/crate1/Cargo.toml
+@@ -3,5 +3,5 @@
+ version = "0.1.0"
+ 
+ [dependencies]
+-anyhow = "1"
++anyhow.workspace = true
+ serde.workspace = true
+
+diff --git a/crate2/Cargo.toml b/crate2/Cargo.toml
+--- a/crate2/Cargo.toml
++++ b/crate2/Cargo.toml
+@@ -3,4 +3,4 @@
+ version = "0.1.0"
+ 
+ [dependencies]
+-serde = { version = "1", features = ["derive"] }
++serde = { features = ["derive"], workspace = true }
+
+

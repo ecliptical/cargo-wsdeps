@@ -24,10 +24,26 @@ cargo install --locked cargo-wsdeps
 
 ## Usage
 
-To generate a diff with suggested changes for a workspace in the current directory:
+`cargo wsdeps` suggests three kinds of changes to a workspace:
+
+1. consolidate dependencies declared inline by 2+ member crates into shared
+   `[workspace.dependencies]` entries (and rewrite the members to use
+   `workspace = true`),
+2. remove `[workspace.dependencies]` entries that no member references, and
+3. (with `--aggressive`) move a workspace dependency back into the sole member
+   that uses it, when only one member inherits it via `workspace = true` and
+   no other member references it inline.
+
+To print a summary of suggested changes:
 
 ```shell
-cargo wsdeps diff
+cargo wsdeps show [--aggressive]
+```
+
+To generate a unified diff with the suggested changes:
+
+```shell
+cargo wsdeps diff [--dotted] [--aggressive]
 ```
 
 Copyright (c) 2025 - 2026 Ecliptical Software Inc. All rights reserved.

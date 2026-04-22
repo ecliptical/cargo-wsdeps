@@ -33,12 +33,19 @@ struct WsDepsArgs {
 #[derive(Debug, Subcommand)]
 enum Commands {
     /// Print changes to shared dependencies in the workspace.
-    Show,
+    Show {
+        /// Also move single-use workspace dependencies back into the member that uses them.
+        #[arg(long, default_value = "false")]
+        aggressive: bool,
+    },
     /// Generate a diff for the workspace.
     Diff {
         /// Use dotted notation for simple dependencies.
         #[arg(long, default_value = "false")]
         dotted: bool,
+        /// Also move single-use workspace dependencies back into the member that uses them.
+        #[arg(long, default_value = "false")]
+        aggressive: bool,
     },
 }
 
@@ -54,15 +61,20 @@ fn main() -> anyhow::Result<()> {
 
     let (selected, _) = args.workspace.partition_packages(&metadata);
 
-    let (add, remove) = partition_dependencies(workspace, &selected)?;
+    let aggressive = match args.cmd {
+        Commands::Show { aggressive } => aggressive,
+        Commands::Diff { aggressive, .. } => aggressive,
+    };
+
+    let (add, remove, inline) = partition_dependencies(workspace, &selected, aggressive)?;
 
     match args.cmd {
-        Commands::Show => {
-            print_changes(&add, &remove);
+        Commands::Show { .. } => {
+            print_changes(&add, &remove, &inline);
         }
-        Commands::Diff { dotted } => {
-            if !add.is_empty() || !remove.is_empty() {
-                generate_diff(&add, &remove, &metadata, dotted)?;
+        Commands::Diff { dotted, .. } => {
+            if !add.is_empty() || !remove.is_empty() || !inline.is_empty() {
+                generate_diff(&add, &remove, &inline, &metadata, dotted)?;
             }
         }
     }

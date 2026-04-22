@@ -1,0 +1,6 @@
+[workspace]
+members = ["crate1", "crate2"]
+resolver = "2"
+
+[workspace.dependencies]
+anyhow = "1"

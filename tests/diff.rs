@@ -59,3 +59,49 @@ fn diff_standalone() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn diff_single_ref() -> Result<()> {
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("test-resources/single-ref");
+    let mut cmd = cargo_bin_cmd!();
+    cmd.current_dir(&dir)
+        .arg("wsdeps")
+        .arg("diff")
+        .assert()
+        .success()
+        .stdout(predicate::eq(""));
+
+    Ok(())
+}
+
+#[test]
+fn diff_mixed_deps() -> Result<()> {
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("test-resources/mixed-deps");
+    let expected = fs::read_to_string(dir.join("diff.patch"))?;
+    let mut cmd = cargo_bin_cmd!();
+    cmd.current_dir(&dir)
+        .arg("wsdeps")
+        .arg("diff")
+        .arg("--dotted")
+        .assert()
+        .success()
+        .stdout(predicate::eq(expected));
+
+    Ok(())
+}
+
+#[test]
+fn diff_no_shared_deps() -> Result<()> {
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("test-resources/no-shared-deps");
+    let expected = fs::read_to_string(dir.join("diff.patch"))?;
+    let mut cmd = cargo_bin_cmd!();
+    cmd.current_dir(&dir)
+        .arg("wsdeps")
+        .arg("diff")
+        .arg("--aggressive")
+        .assert()
+        .success()
+        .stdout(predicate::eq(expected));
+
+    Ok(())
+}
