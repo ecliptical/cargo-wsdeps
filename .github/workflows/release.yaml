@@ -175,6 +175,8 @@ jobs:
 
       - name: Install from GitHub release (Linux/macOS)
         if: runner.os != 'Windows'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
           cargo binstall --no-confirm --force \
@@ -184,6 +186,8 @@ jobs:
 
       - name: Install from GitHub release (Windows)
         if: runner.os == 'Windows'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $VERSION = $env:GITHUB_REF -replace '^refs/tags/v', ''
           cargo binstall --no-confirm --force `
