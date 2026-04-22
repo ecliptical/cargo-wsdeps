@@ -1,0 +1,39 @@
+diff --git a/crate1/Cargo.toml b/crate1/Cargo.toml
+--- a/crate1/Cargo.toml
++++ b/crate1/Cargo.toml
+@@ -3,7 +3,7 @@
+ version = "0.1.0"
+ 
+ [dev-dependencies]
+-serde_json = "1"
++serde_json = { workspace = true }
+ 
+ [build-dependencies]
+-cc = "1"
++cc = { workspace = true }
+
+diff --git a/crate2/Cargo.toml b/crate2/Cargo.toml
+--- a/crate2/Cargo.toml
++++ b/crate2/Cargo.toml
+@@ -3,7 +3,7 @@
+ version = "0.1.0"
+ 
+ [dev-dependencies]
+-serde_json = "1"
++serde_json = { workspace = true }
+ 
+ [build-dependencies]
+-cc = "1"
++cc = { workspace = true }
+
+diff --git a/Cargo.toml b/Cargo.toml
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -3,3 +3,5 @@
+ resolver = "2"
+ 
+ [workspace.dependencies]
++cc = "^1"
++serde_json = "^1"
+
+

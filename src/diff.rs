@@ -33,7 +33,10 @@ pub fn generate_diff(
 
     // Capture workspace dep items before removing them (needed for inline)
     let mut inline_items: BTreeMap<String, Item> = BTreeMap::new();
-    if let Some(workspace_dependencies) = workspace_doc["workspace"]["dependencies"].as_table_like()
+    if let Some(workspace_dependencies) = workspace_doc
+        .get("workspace")
+        .and_then(|w| w.get("dependencies"))
+        .and_then(|d| d.as_table_like())
     {
         for name in inline.keys() {
             if let Some(item) = workspace_dependencies.get(name) {
@@ -42,8 +45,10 @@ pub fn generate_diff(
         }
     }
 
-    if let Some(workspace_dependencies) =
-        workspace_doc["workspace"]["dependencies"].as_table_like_mut()
+    if let Some(workspace_dependencies) = workspace_doc
+        .get_mut("workspace")
+        .and_then(|w| w.get_mut("dependencies"))
+        .and_then(|d| d.as_table_like_mut())
     {
         for name in remove {
             workspace_dependencies.remove(name);
@@ -53,9 +58,23 @@ pub fn generate_diff(
     let mut member_changes: BTreeMap<Utf8PathBuf, MemberChanges> = BTreeMap::new();
 
     if !add.is_empty() {
-        let Some(workspace_dependencies) = workspace_doc["workspace"]["dependencies"]
-            .or_insert(table())
+        let Some(workspace_table) = workspace_doc
             .as_table_mut()
+            .entry("workspace")
+            .or_insert_with(table)
+            .as_table_mut()
+        else {
+            anyhow::bail!("Invalid [workspace] entry");
+        };
+        // `Table::entry(...).or_insert(table())` does not reliably promote a
+        // missing key into a real `Item::Table` for top-level workspace
+        // sub-tables, so insert explicitly when missing.
+        if !workspace_table.contains_key("dependencies") {
+            workspace_table.insert("dependencies", table());
+        }
+        let Some(workspace_dependencies) = workspace_table
+            .get_mut("dependencies")
+            .and_then(|d| d.as_table_mut())
         else {
             anyhow::bail!("Invalid workspace dependencies entry");
         };

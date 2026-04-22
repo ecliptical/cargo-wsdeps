@@ -1,0 +1,11 @@
+diff --git a/crate2/Cargo.toml b/crate2/Cargo.toml
+--- a/crate2/Cargo.toml
++++ b/crate2/Cargo.toml
+@@ -4,4 +4,4 @@
+ 
+ [dependencies]
+ anyhow = { workspace = true }
+-serde = "1"
++serde = { workspace = true }
+
+

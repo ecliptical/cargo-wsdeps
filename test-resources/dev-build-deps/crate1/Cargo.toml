@@ -1,0 +1,9 @@
+[package]
+name = "crate1"
+version = "0.1.0"
+
+[dev-dependencies]
+serde_json = "1"
+
+[build-dependencies]
+cc = "1"

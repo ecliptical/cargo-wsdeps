@@ -1,0 +1,7 @@
+[package]
+name = "crate2"
+version = "0.1.0"
+
+[dependencies]
+anyhow = { workspace = true }
+serde = "1"

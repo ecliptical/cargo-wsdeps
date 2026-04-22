@@ -1,0 +1,11 @@
+diff --git a/Cargo.toml b/Cargo.toml
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -3,5 +3,3 @@
+ resolver = "2"
+ 
+ [workspace.dependencies]
+-anyhow = "1"
+-serde = { version = "1", features = ["derive"] }
+
+
