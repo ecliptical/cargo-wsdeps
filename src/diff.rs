@@ -1,16 +1,39 @@
 use cargo_metadata::{
     Dependency, DependencyKind, Metadata,
     camino::{Utf8Path, Utf8PathBuf},
+    semver::VersionReq,
 };
 use patcher::{DiffAlgorithm, Differ, MultifilePatch};
 use pathdiff::diff_utf8_paths;
-use std::{
-    collections::{BTreeMap, BTreeSet},
-    fs::read_to_string,
-};
+use std::collections::{BTreeMap, BTreeSet};
+use std::fs::read_to_string;
 use toml_edit::{Array, DocumentMut, InlineTable, Item, Table, table, value};
 
 use crate::MemberDependency;
+
+/// Render a `VersionReq` using Cargo's preferred syntax: drop a leading
+/// caret for single-comparator caret reqs (e.g. `^1.2` -> `1.2`).
+fn format_req(req: &VersionReq) -> String {
+    let s = req.to_string();
+    if let Some(rest) = s.strip_prefix('^')
+        && !rest.contains([',', ' ', '<', '>', '=', '~', '^', '*'])
+    {
+        rest.to_string()
+    } else {
+        s
+    }
+}
+
+/// Score a `VersionReq` by its first comparator's (major, minor, patch)
+/// so divergent member reqs can be reconciled by picking the highest
+/// minimum. Complex multi-comparator reqs fall back to (0,0,0); the
+/// existing iteration order then picks the first such entry.
+fn req_floor(req: &VersionReq) -> (u64, u64, u64) {
+    req.comparators
+        .first()
+        .map(|c| (c.major, c.minor.unwrap_or(0), c.patch.unwrap_or(0)))
+        .unwrap_or((0, 0, 0))
+}
 
 #[derive(Default)]
 struct MemberChanges {
@@ -80,14 +103,21 @@ pub fn generate_diff(
         };
 
         for (name, members) in add {
-            // TODO determine how to reconcile version
-            let mut dependency = None;
+            // Reconcile divergent member version reqs by picking the one
+            // with the highest minimum version. This avoids silently
+            // downgrading a member that pinned a newer floor.
+            let mut dependency: Option<&Dependency> = None;
             let mut no_default_features = false;
             let mut features = BTreeSet::new();
             for member in members {
-                if dependency.is_none() {
-                    // TODO we can't just grab the first one
-                    dependency = Some(member.dependency.clone());
+                match dependency {
+                    None => dependency = Some(&member.dependency),
+                    Some(current)
+                        if req_floor(&member.dependency.req) > req_floor(&current.req) =>
+                    {
+                        dependency = Some(&member.dependency);
+                    }
+                    _ => {}
                 }
 
                 features.extend(member.dependency.features.iter().cloned());
@@ -101,9 +131,10 @@ pub fn generate_diff(
             }
 
             if let Some(dependency) = dependency {
+                let req_str = format_req(&dependency.req);
                 let value = if no_default_features || !features.is_empty() {
                     let mut entry = InlineTable::new();
-                    entry.insert("version", dependency.req.to_string().into());
+                    entry.insert("version", req_str.into());
 
                     if no_default_features {
                         entry.insert("default-features", false.into());
@@ -115,7 +146,7 @@ pub fn generate_diff(
 
                     entry.into()
                 } else {
-                    value(dependency.req.to_string())
+                    value(req_str)
                 };
 
                 // The dep may already exist in [workspace.dependencies] when
@@ -127,6 +158,10 @@ pub fn generate_diff(
                 }
             }
         }
+
+        // Keep the workspace dependency table alphabetically sorted so newly
+        // inserted entries land in their proper place rather than appended.
+        workspace_dependencies.sort_values();
     }
 
     for (name, member) in inline {

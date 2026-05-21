@@ -329,3 +329,42 @@ fn diff_multi_member_dotted() -> Result<()> {
 
     Ok(())
 }
+
+/// A workspace dep declared as a path entry (`foo = { path = ".." }`) and
+/// referenced by members via `foo.workspace = true` must NOT be removed
+/// from the workspace, even though cargo_metadata reports the resolved
+/// dependency with `path` set. Regression: the inline path filter used
+/// to drop these from `ws_users`, causing the tool to emit a patch
+/// that deleted the still-referenced workspace entry and broke the
+/// workspace.
+#[test]
+fn diff_path_workspace_deps() -> Result<()> {
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("test-resources/path-workspace-deps");
+    let mut cmd = cargo_bin_cmd!();
+    cmd.current_dir(&dir)
+        .arg("wsdeps")
+        .arg("diff")
+        .assert()
+        .success()
+        .stdout(predicate::eq(""));
+
+    Ok(())
+}
+
+/// Newly promoted workspace deps must be inserted in alphabetical
+/// position rather than appended at the end of an already-sorted
+/// `[workspace.dependencies]` table.
+#[test]
+fn diff_alphabetical_insert() -> Result<()> {
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("test-resources/alphabetical-insert");
+    let expected = fs::read_to_string(dir.join("diff.patch"))?;
+    let mut cmd = cargo_bin_cmd!();
+    cmd.current_dir(&dir)
+        .arg("wsdeps")
+        .arg("diff")
+        .assert()
+        .success()
+        .stdout(predicate::eq(expected));
+
+    Ok(())
+}

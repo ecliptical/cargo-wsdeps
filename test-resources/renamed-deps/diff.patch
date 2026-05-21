@@ -23,6 +23,6 @@ diff --git a/Cargo.toml b/Cargo.toml
  resolver = "2"
  
  [workspace.dependencies]
-+anyhow = "^1"
++anyhow = "1"
 
 

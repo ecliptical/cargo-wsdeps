@@ -25,6 +25,6 @@ diff --git a/Cargo.toml b/Cargo.toml
  resolver = "2"
  
  [workspace.dependencies]
-+serde = { version = "^1", features = ["derive", "rc"] }
++serde = { version = "1", features = ["derive", "rc"] }
 
 

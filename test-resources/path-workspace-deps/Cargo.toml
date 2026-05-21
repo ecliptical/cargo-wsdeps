@@ -1,0 +1,7 @@
+[workspace]
+members = ["axum-utils", "crate1", "crate2"]
+resolver = "2"
+
+[workspace.dependencies]
+anyhow = "1"
+axum-utils = { path = "axum-utils" }

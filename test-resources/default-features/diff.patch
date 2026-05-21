@@ -25,6 +25,6 @@ diff --git a/Cargo.toml b/Cargo.toml
  resolver = "2"
  
  [workspace.dependencies]
-+anyhow = { version = "^1", default-features = false }
++anyhow = { version = "1", default-features = false }
 
 

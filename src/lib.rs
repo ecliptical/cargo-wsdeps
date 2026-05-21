@@ -54,13 +54,23 @@ pub fn partition_dependencies(
             }
         }
 
-        for dep in member.dependencies.iter().filter(|&dep| dep.path.is_none()) {
+        for dep in member.dependencies.iter() {
+            let is_inherited = inherited.contains(&dep.name);
+            // Inline `path = ".."` references to sibling crates aren't workspace
+            // candidates — skip them. But inherited deps (`foo.workspace = true`)
+            // must always be tracked, even when the workspace entry itself is a
+            // path dependency: cargo_metadata resolves the member's reference
+            // with `path` set, and dropping it here would cause the tool to
+            // delete the still-referenced workspace entry.
+            if !is_inherited && dep.path.is_some() {
+                continue;
+            }
             let md = MemberDependency {
                 name: member.name.to_string(),
                 manifest_path: member.manifest_path.clone(),
                 dependency: dep.clone(),
             };
-            if inherited.contains(&dep.name) {
+            if is_inherited {
                 ws_users.entry(dep.name.clone()).or_default().push(md);
             } else {
                 needed_deps.entry(dep.name.clone()).or_default().push(md);
