@@ -330,6 +330,26 @@ fn diff_multi_member_dotted() -> Result<()> {
     Ok(())
 }
 
+/// `--aggressive` inlining a path-based workspace dep must rewrite the
+/// `path` value to be relative to the member's directory, not the workspace
+/// root. Regression: the path was copied verbatim from the workspace entry,
+/// producing an invalid path and breaking the workspace.
+#[test]
+fn diff_aggressive_path() -> Result<()> {
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("test-resources/aggressive-path");
+    let expected = fs::read_to_string(dir.join("diff.patch"))?;
+    let mut cmd = cargo_bin_cmd!();
+    cmd.current_dir(&dir)
+        .arg("wsdeps")
+        .arg("diff")
+        .arg("--aggressive")
+        .assert()
+        .success()
+        .stdout(predicate::eq(expected));
+
+    Ok(())
+}
+
 /// A workspace dep declared as a path entry (`foo = { path = ".." }`) and
 /// referenced by members via `foo.workspace = true` must NOT be removed
 /// from the workspace, even though cargo_metadata reports the resolved

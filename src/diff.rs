@@ -175,7 +175,7 @@ pub fn generate_diff(
     }
 
     for (path, mc) in member_changes {
-        update_member(&path, &mc, dotted, &mut changes)?;
+        update_member(&path, &mc, dotted, &metadata.workspace_root, &mut changes)?;
     }
 
     changes.push((workspace_path, workspace_content, workspace_doc.to_string()));
@@ -206,10 +206,12 @@ fn update_member(
     path: &Utf8Path,
     mc: &MemberChanges,
     dotted: bool,
+    workspace_root: &Utf8Path,
     changes: &mut Vec<(Utf8PathBuf, String, String)>,
 ) -> anyhow::Result<()> {
     let member_content = read_to_string(path)?;
     let mut member_doc: DocumentMut = member_content.parse()?;
+    let member_dir = path.parent().unwrap_or(path);
 
     for dep in &mc.to_workspace {
         let memmber_dependencies = match dep.kind {
@@ -233,7 +235,7 @@ fn update_member(
         };
 
         if let Some(member_dependencies) = memmber_dependencies {
-            inline_dependency(member_dependencies, name, item);
+            inline_dependency(member_dependencies, name, item, workspace_root, member_dir);
         }
     }
 
@@ -246,7 +248,17 @@ fn update_dependency(member_dependencies: &mut Table, dep: &Dependency, dotted: 
     if let Some(entry) = member_dependencies[&dep.name].as_table_like_mut() {
         entry.remove("version");
         entry.remove("default-features");
+        // Collect remaining keys so we can re-insert them after `workspace = true`.
+        let rest: Vec<(String, toml_edit::Value)> = entry
+            .iter()
+            .filter(|(k, _)| *k != "workspace")
+            .filter_map(|(k, v)| v.as_value().map(|val| (k.to_string(), val.clone())))
+            .collect();
+        entry.clear();
         entry.insert("workspace", value(true));
+        for (k, v) in rest {
+            entry.insert(&k, Item::Value(v));
+        }
         entry.fmt();
     } else {
         let mut entry = InlineTable::new();
@@ -256,7 +268,22 @@ fn update_dependency(member_dependencies: &mut Table, dep: &Dependency, dotted: 
     }
 }
 
-fn inline_dependency(member_dependencies: &mut Table, name: &str, ws_item: &Item) {
+/// Rewrite a `path` value from workspace-root-relative to member-dir-relative.
+/// If the path is absolute or the diff fails, return it unchanged.
+fn rebase_path(ws_path: &str, workspace_root: &Utf8Path, member_dir: &Utf8Path) -> String {
+    let abs = workspace_root.join(ws_path);
+    diff_utf8_paths(&abs, member_dir)
+        .map(|p| p.to_string())
+        .unwrap_or_else(|| ws_path.to_string())
+}
+
+fn inline_dependency(
+    member_dependencies: &mut Table,
+    name: &str,
+    ws_item: &Item,
+    workspace_root: &Utf8Path,
+    member_dir: &Utf8Path,
+) {
     // Determine if the existing member entry has any extra keys besides `workspace`
     let mut extras: Vec<(String, Item)> = Vec::new();
     if let Some(entry) = member_dependencies
@@ -271,8 +298,9 @@ fn inline_dependency(member_dependencies: &mut Table, name: &str, ws_item: &Item
     }
 
     if extras.is_empty() {
-        // Replace member entry with workspace's item directly
-        member_dependencies.insert(name, ws_item.clone());
+        // Replace member entry with workspace's item directly, rebasing any path.
+        let rebased = rebase_ws_item(ws_item, workspace_root, member_dir);
+        member_dependencies.insert(name, rebased);
     } else {
         // Merge workspace item fields with member's extras
         let mut merged = InlineTable::new();
@@ -280,13 +308,27 @@ fn inline_dependency(member_dependencies: &mut Table, name: &str, ws_item: &Item
             Item::Value(toml_edit::Value::String(s)) => {
                 merged.insert("version", s.value().clone().into());
             }
+
             Item::Value(toml_edit::Value::InlineTable(t)) => {
                 for (k, v) in t.iter() {
+                    if k == "path"
+                        && let Some(p) = v.as_str() {
+                            merged.insert(k, rebase_path(p, workspace_root, member_dir).into());
+                            continue;
+                        }
+
                     merged.insert(k, v.clone());
                 }
             }
+
             Item::Table(t) => {
                 for (k, v) in t.iter() {
+                    if k == "path"
+                        && let Some(p) = v.as_str() {
+                            merged.insert(k, rebase_path(p, workspace_root, member_dir).into());
+                            continue;
+                        }
+
                     if let Some(val) = v.as_value() {
                         merged.insert(k, val.clone());
                     }
@@ -301,5 +343,30 @@ fn inline_dependency(member_dependencies: &mut Table, name: &str, ws_item: &Item
         }
         merged.fmt();
         member_dependencies[name] = value(merged);
+    }
+}
+
+/// Clone a workspace Item, rebasing any `path` value to be relative to `member_dir`.
+fn rebase_ws_item(item: &Item, workspace_root: &Utf8Path, member_dir: &Utf8Path) -> Item {
+    match item {
+        Item::Value(toml_edit::Value::InlineTable(t)) => {
+            let mut new_t = t.clone();
+            if let Some(p) = t.get("path").and_then(|v| v.as_str()) {
+                new_t.insert("path", rebase_path(p, workspace_root, member_dir).into());
+            }
+
+            Item::Value(toml_edit::Value::InlineTable(new_t))
+        }
+
+        Item::Table(t) => {
+            let mut new_t = t.clone();
+            if let Some(p) = t.get("path").and_then(|v| v.as_str()) {
+                new_t.insert("path", value(rebase_path(p, workspace_root, member_dir)));
+            }
+            Item::Table(new_t)
+        }
+
+        // Plain version string — no path to rebase.
+        other => other.clone(),
     }
 }

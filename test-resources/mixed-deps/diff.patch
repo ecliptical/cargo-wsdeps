@@ -17,6 +17,6 @@ diff --git a/crate2/Cargo.toml b/crate2/Cargo.toml
  
  [dependencies]
 -serde = { version = "1", features = ["derive"] }
-+serde = { features = ["derive"], workspace = true }
++serde = { workspace = true, features = ["derive"] }
 
 

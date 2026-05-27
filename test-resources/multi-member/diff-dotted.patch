@@ -16,7 +16,7 @@ diff --git a/crate3/Cargo.toml b/crate3/Cargo.toml
  
  [dependencies]
 -anyhow = { version = "1", default-features = false, optional = true }
-+anyhow = { optional = true, workspace = true }
++anyhow = { workspace = true, optional = true }
 
 diff --git a/Cargo.toml b/Cargo.toml
 --- a/Cargo.toml

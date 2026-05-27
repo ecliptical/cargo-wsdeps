@@ -1,0 +1,7 @@
+[workspace]
+members = ["libs/foo", "services/bar"]
+resolver = "2"
+
+[workspace.dependencies]
+anyhow = "1"
+foo = { path = "libs/foo" }

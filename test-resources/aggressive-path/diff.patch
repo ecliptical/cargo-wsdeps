@@ -1,0 +1,23 @@
+diff --git a/services/bar/Cargo.toml b/services/bar/Cargo.toml
+--- a/services/bar/Cargo.toml
++++ b/services/bar/Cargo.toml
+@@ -3,5 +3,5 @@
+ version = "0.1.0"
+ 
+ [dependencies]
+-anyhow.workspace = true
+-foo.workspace = true
++anyhow = "1"
++foo = { path = "../../libs/foo" }
+
+diff --git a/Cargo.toml b/Cargo.toml
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -3,5 +3,3 @@
+ resolver = "2"
+ 
+ [workspace.dependencies]
+-anyhow = "1"
+-foo = { path = "libs/foo" }
+
+
