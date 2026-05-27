@@ -257,7 +257,7 @@ fn update_dependency(member_dependencies: &mut Table, dep: &Dependency, dotted: 
             .filter_map(|(k, v)| v.as_value().map(|val| (k.to_string(), val.clone())))
             .collect();
 
-            entry.clear();
+        entry.clear();
         entry.insert("workspace", value(true));
 
         for (k, v) in rest {
