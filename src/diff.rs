@@ -89,12 +89,14 @@ pub fn generate_diff(
         else {
             anyhow::bail!("Invalid [workspace] entry");
         };
+
         // `Table::entry(...).or_insert(table())` does not reliably promote a
         // missing key into a real `Item::Table` for top-level workspace
         // sub-tables, so insert explicitly when missing.
         if !workspace_table.contains_key("dependencies") {
             workspace_table.insert("dependencies", table());
         }
+
         let Some(workspace_dependencies) = workspace_table
             .get_mut("dependencies")
             .and_then(|d| d.as_table_mut())
@@ -254,11 +256,14 @@ fn update_dependency(member_dependencies: &mut Table, dep: &Dependency, dotted: 
             .filter(|(k, _)| *k != "workspace")
             .filter_map(|(k, v)| v.as_value().map(|val| (k.to_string(), val.clone())))
             .collect();
-        entry.clear();
+
+            entry.clear();
         entry.insert("workspace", value(true));
+
         for (k, v) in rest {
             entry.insert(&k, Item::Value(v));
         }
+
         entry.fmt();
     } else {
         let mut entry = InlineTable::new();
@@ -312,10 +317,11 @@ fn inline_dependency(
             Item::Value(toml_edit::Value::InlineTable(t)) => {
                 for (k, v) in t.iter() {
                     if k == "path"
-                        && let Some(p) = v.as_str() {
-                            merged.insert(k, rebase_path(p, workspace_root, member_dir).into());
-                            continue;
-                        }
+                        && let Some(p) = v.as_str()
+                    {
+                        merged.insert(k, rebase_path(p, workspace_root, member_dir).into());
+                        continue;
+                    }
 
                     merged.insert(k, v.clone());
                 }
@@ -324,10 +330,11 @@ fn inline_dependency(
             Item::Table(t) => {
                 for (k, v) in t.iter() {
                     if k == "path"
-                        && let Some(p) = v.as_str() {
-                            merged.insert(k, rebase_path(p, workspace_root, member_dir).into());
-                            continue;
-                        }
+                        && let Some(p) = v.as_str()
+                    {
+                        merged.insert(k, rebase_path(p, workspace_root, member_dir).into());
+                        continue;
+                    }
 
                     if let Some(val) = v.as_value() {
                         merged.insert(k, val.clone());
@@ -336,11 +343,13 @@ fn inline_dependency(
             }
             _ => {}
         }
+
         for (k, v) in extras {
             if let Some(val) = v.as_value() {
                 merged.insert(&k, val.clone());
             }
         }
+
         merged.fmt();
         member_dependencies[name] = value(merged);
     }
@@ -363,6 +372,7 @@ fn rebase_ws_item(item: &Item, workspace_root: &Utf8Path, member_dir: &Utf8Path)
             if let Some(p) = t.get("path").and_then(|v| v.as_str()) {
                 new_t.insert("path", value(rebase_path(p, workspace_root, member_dir)));
             }
+
             Item::Table(new_t)
         }
 
