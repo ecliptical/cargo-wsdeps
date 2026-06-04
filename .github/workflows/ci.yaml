@@ -32,8 +32,13 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: coverage
+          # Don't cache build artifacts: a restored target/ mixes
+          # instrumented binaries and .profraw files across builds, which
+          # makes grcov merge mismatched coverage maps and report 0%.
+          cache-targets: false
       - name: Run tests
         run: |
+          rm -rf target/coverage
           mkdir -p target/coverage
           cargo test --all-features
       - name: Generate coverage report
