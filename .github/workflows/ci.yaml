@@ -21,6 +21,9 @@ jobs:
   test:
     runs-on: ubuntu-latest
     needs: check
+    env:
+      RUSTFLAGS: '-Cinstrument-coverage'
+      LLVM_PROFILE_FILE: 'target/coverage/%p-%m.profraw'
     steps:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
@@ -33,9 +36,6 @@ jobs:
         run: |
           mkdir -p target/coverage
           cargo test --all-features
-        env:
-          RUSTFLAGS: '-Cinstrument-coverage'
-          LLVM_PROFILE_FILE: 'target/coverage/%p-%m.profraw'
       - name: Generate coverage report
         uses: ecliptical/covdir-report-action@v0.4
         with:
