@@ -56,10 +56,16 @@ jobs:
           LLVM_BIN="$(rustc --print sysroot)/lib/rustlib/x86_64-unknown-linux-gnu/bin"
           "$LLVM_BIN/llvm-profdata" merge -sparse target/coverage/*.profraw -o /tmp/merged.profdata 2>&1 || true
           ls -la /tmp/merged.profdata || true
-          echo "=== llvm-cov report against diff test binary ==="
+          echo "=== versions ==="
+          rustc --version
+          "$LLVM_BIN/llvm-profdata" --version | head -2
+          "$LLVM_BIN/llvm-cov" --version | head -2
+          echo "=== profdata show (counts) ==="
+          "$LLVM_BIN/llvm-profdata" show /tmp/merged.profdata 2>&1 | head -15 || true
+          echo "=== llvm-cov report against diff test binary, project src only ==="
           DIFF_BIN=$(ls target/debug/deps/diff-* | grep -v '\.d$' | head -1)
           echo "binary: $DIFF_BIN"
-          "$LLVM_BIN/llvm-cov" report "$DIFF_BIN" -instr-profile=/tmp/merged.profdata 2>&1 | grep -E "src/|TOTAL|error" | head -20 || true
+          "$LLVM_BIN/llvm-cov" report "$DIFF_BIN" -instr-profile=/tmp/merged.profdata 2>&1 | grep -E "wsdeps|/src/diff|/src/main|/src/lib|TOTAL" | head -20 || true
       - name: Generate coverage report
         uses: ecliptical/covdir-report-action@v0.4
         with:
