@@ -71,6 +71,9 @@ fn main() -> anyhow::Result<()> {
     match args.cmd {
         Commands::Show { .. } => {
             print_changes(&add, &remove, &inline);
+            if !add.is_empty() || !remove.is_empty() || !inline.is_empty() {
+                std::process::exit(1);
+            }
         }
         Commands::Diff { dotted, .. } => {
             if !add.is_empty() || !remove.is_empty() || !inline.is_empty() {
