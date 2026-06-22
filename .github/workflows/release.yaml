@@ -170,7 +170,7 @@ jobs:
 
     steps:
       - name: Install cargo-binstall
-        uses: cargo-bins/cargo-binstall@v1.19.1
+        uses: cargo-bins/cargo-binstall@v1.20.1
 
       - name: Install from GitHub release (Linux/macOS)
         if: runner.os != 'Windows'
