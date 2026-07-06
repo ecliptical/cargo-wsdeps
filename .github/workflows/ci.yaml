@@ -44,7 +44,7 @@ jobs:
           summary: 'true'
           out: ./target/coverage.md
       - name: Add coverage comment to the pull request
-        uses: marocchino/sticky-pull-request-comment@v3.0.4
+        uses: marocchino/sticky-pull-request-comment@v3.0.5
         if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
         with:
           hide_and_recreate: true
