@@ -27,9 +27,33 @@ pub type PartitionedDependencies = (
 pub fn partition_dependencies(
     workspace: &Workspace,
     selected: &[&Package],
+    unselected: &[&Package],
     aggressive: bool,
 ) -> anyhow::Result<PartitionedDependencies> {
     let current_deps: HashSet<_> = workspace.dependencies.keys().cloned().collect();
+
+    // Workspace deps inherited (`foo.workspace = true`) by members outside the
+    // selection. These are invisible to the selection-scoped analysis below,
+    // but removing their workspace entry would strand the inheriting member's
+    // `foo.workspace = true` with nothing to inherit from. Keep them pinned so
+    // a narrowed selection (e.g. running without `--workspace` when a member is
+    // absent from `default-members`) can't silently delete a dep the rest of
+    // the workspace still relies on.
+    let mut pinned: HashSet<String> = HashSet::new();
+    for &member in unselected {
+        let content = fs::read_to_string(member.manifest_path.as_std_path())?;
+        let member_manifest: Manifest = Manifest::from_str(&content)?;
+        for (name, dep) in member_manifest
+            .dependencies
+            .iter()
+            .chain(member_manifest.dev_dependencies.iter())
+            .chain(member_manifest.build_dependencies.iter())
+        {
+            if matches!(dep, cargo_toml::Dependency::Inherited(_)) && current_deps.contains(name) {
+                pinned.insert(name.clone());
+            }
+        }
+    }
 
     // Members of each dep, split by how the member declares it:
     //   - `needed_deps`: declared inline (`foo = "1"` or `foo = { version = ... }`)
@@ -89,22 +113,26 @@ pub fn partition_dependencies(
     });
 
     // A workspace dep is kept if at least one member still references it
-    // (either inline as a holdout, or via `workspace = true`).
+    // (either inline as a holdout, or via `workspace = true`), or if a member
+    // outside the selection inherits it.
     let (common, mut remove) = current_deps
         .into_iter()
         .partition::<BTreeSet<_>, _>(|name| {
-            needed_deps.contains_key(name) || ws_users.contains_key(name)
+            needed_deps.contains_key(name) || ws_users.contains_key(name) || pinned.contains(name)
         });
 
     // --aggressive: move a workspace dep back into the sole member that uses
     // it, but only when exactly one member inherits it and no other member
-    // references it inline (otherwise consolidation would re-add it).
+    // references it inline (otherwise consolidation would re-add it). A dep
+    // pinned by an out-of-selection inheritor is never pulled inline: the
+    // workspace entry it inherits from must stay.
     let mut inline: BTreeMap<String, MemberDependency> = BTreeMap::new();
     if aggressive {
         for name in &common {
             let inherited_count = ws_users.get(name).map(|v| v.len()).unwrap_or(0);
             let inline_count = needed_deps.get(name).map(|v| v.len()).unwrap_or(0);
-            if inherited_count == 1
+            if !pinned.contains(name)
+                && inherited_count == 1
                 && inline_count == 0
                 && let Some(mut users) = ws_users.remove(name)
                 && let Some(md) = users.pop()

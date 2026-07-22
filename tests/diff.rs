@@ -371,6 +371,29 @@ fn diff_path_workspace_deps() -> Result<()> {
     Ok(())
 }
 
+/// A workspace dep inherited (`foo.workspace = true`) only by a member outside
+/// the selection must not be removed. Regression: a default-selection run (no
+/// `--workspace`) skips members absent from `default-members`, so a dep only
+/// they inherited looked unused and was deleted from `[workspace.dependencies]`
+/// while their `foo.workspace = true` was left dangling, breaking the workspace.
+/// Here `tool` is not a default member and solely inherits `anyhow`, which must
+/// survive; the genuinely unused `serde` is still removed.
+#[test]
+fn diff_default_members_inherited() -> Result<()> {
+    let dir =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("test-resources/default-members-inherited");
+    let expected = fs::read_to_string(dir.join("diff.patch"))?;
+    let mut cmd = cargo_bin_cmd!();
+    cmd.current_dir(&dir)
+        .arg("wsdeps")
+        .arg("diff")
+        .assert()
+        .success()
+        .stdout(predicate::eq(expected));
+
+    Ok(())
+}
+
 /// Newly promoted workspace deps must be inserted in alphabetical
 /// position rather than appended at the end of an already-sorted
 /// `[workspace.dependencies]` table.

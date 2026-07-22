@@ -1,6 +1,8 @@
+use cargo_metadata::Package;
 use cargo_toml::Manifest;
 use cargo_wsdeps::{diff::generate_diff, partition_dependencies, show::print_changes};
 use clap::{Parser, Subcommand};
+use std::collections::HashSet;
 
 #[cfg(all(feature = "jemalloc", target_env = "musl"))]
 use jemallocator::Jemalloc;
@@ -61,12 +63,25 @@ fn main() -> anyhow::Result<()> {
 
     let (selected, _) = args.workspace.partition_packages(&metadata);
 
+    // Workspace members outside the selection. `partition_packages` reports
+    // every resolved package as unselected (including transitive registry
+    // crates), so intersect with the workspace members to keep only member
+    // manifests: those are the ones whose `foo.workspace = true` inheritance
+    // pins a workspace dep against removal.
+    let selected_ids: HashSet<_> = selected.iter().map(|p| &p.id).collect();
+    let unselected: Vec<&Package> = metadata
+        .workspace_packages()
+        .into_iter()
+        .filter(|p| !selected_ids.contains(&p.id))
+        .collect();
+
     let aggressive = match args.cmd {
         Commands::Show { aggressive } => aggressive,
         Commands::Diff { aggressive, .. } => aggressive,
     };
 
-    let (add, remove, inline) = partition_dependencies(workspace, &selected, aggressive)?;
+    let (add, remove, inline) =
+        partition_dependencies(workspace, &selected, &unselected, aggressive)?;
 
     match args.cmd {
         Commands::Show { .. } => {

@@ -1,0 +1,8 @@
+[workspace]
+members = ["app", "tool"]
+default-members = ["app"]
+resolver = "2"
+
+[workspace.dependencies]
+anyhow = "1"
+serde = { version = "1", features = ["derive"] }
